@@ -9,33 +9,26 @@ then
 fi
 
 REPO_NAME=$(cat $SCRIPT_DIR/../REPO_NAME)
+DOCKER_PLATFORMS=${DOCKER_PLATFORMS:-linux/amd64,linux/arm64}
 
 if [ -n "$1" ]
 then
-  TAG_NAME=""
+  TAG_ARGS=()
   while [ -n "$1" ]
   do
     if [ "$1" == "latest" ]
     then
-      TAG_NAME="$TAG_NAME $REPO_NAME"
+      TAG_ARGS+=("-t" "$REPO_NAME")
     else
-      TAG_NAME="$TAG_NAME $REPO_NAME:$1"
+      TAG_ARGS+=("-t" "$REPO_NAME:$1")
     fi
     shift
   done
 else
-  TAG_NAME=$REPO_NAME
+  TAG_ARGS=("-t" "$REPO_NAME")
 fi
 
-echo Tag name is "'$TAG_NAME'"
+echo "Platforms are '$DOCKER_PLATFORMS'"
+echo "Tags are '${TAG_ARGS[*]}'"
 
-fname=$(mktemp)
-
-docker build --pull . | tee $fname
-
-TAG_ID=$(tail -n 1 $fname | rev | cut -d\  -f1 | rev)
-rm $fname
-
-docker tag $TAG_ID $TAG_NAME
-echo Tagged $TAG_NAME
-docker push $TAG_NAME
+docker buildx build --pull --platform "$DOCKER_PLATFORMS" "${TAG_ARGS[@]}" --push .
