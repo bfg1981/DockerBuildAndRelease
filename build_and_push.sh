@@ -10,6 +10,7 @@ fi
 
 REPO_NAME=$(cat $SCRIPT_DIR/../REPO_NAME)
 DOCKER_PLATFORMS=${DOCKER_PLATFORMS:-linux/amd64,linux/arm64}
+DOCKER_BUILDX_BUILDER=${DOCKER_BUILDX_BUILDER:-multiarch}
 
 if [ -n "$1" ]
 then
@@ -31,4 +32,12 @@ fi
 echo "Platforms are '$DOCKER_PLATFORMS'"
 echo "Tags are '${TAG_ARGS[*]}'"
 
+if ! docker buildx inspect "$DOCKER_BUILDX_BUILDER" >/dev/null 2>&1
+then
+  docker buildx create --name "$DOCKER_BUILDX_BUILDER" --driver docker-container --use
+else
+  docker buildx use "$DOCKER_BUILDX_BUILDER"
+fi
+
+docker buildx inspect --bootstrap
 docker buildx build --pull --platform "$DOCKER_PLATFORMS" "${TAG_ARGS[@]}" --push .
